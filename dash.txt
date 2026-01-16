@@ -1,0 +1,93 @@
+-- LocalScript (StarterPlayerScripts-də)
+local player = game.Players.LocalPlayer
+
+-- GUI yaratmaq
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MoveGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Button yaratma funksiyası
+local function createButton(name, pos, text)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = UDim2.new(0, 60, 0, 60)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.BorderSizePixel = 0
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 18
+    btn.Text = text
+    btn.Parent = screenGui
+    return btn
+end
+
+-- TextBox yaratmaq
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(0, 60, 0, 40)
+textBox.Position = UDim2.new(1, -80, 0, 50) -- sağa
+textBox.AnchorPoint = Vector2.new(1, 0)
+textBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+textBox.BorderSizePixel = 0
+textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textBox.Font = Enum.Font.SourceSans
+textBox.PlaceholderText = "Stud"
+textBox.Text = ""
+textBox.ClearTextOnFocus = false
+textBox.Parent = screenGui
+
+-- X button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -40, 0, 10) -- sağa
+closeBtn.AnchorPoint = Vector2.new(1, 0)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.Text = "X"
+closeBtn.Parent = screenGui
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Düymələr (Forward, Backward, Left, Right)
+local spacing = 70
+local startX = 1 -- sağdan başlayırıq
+local startY = 120
+
+local forwardBtn = createButton("Forward", UDim2.new(1, -80, 0, startY), "↑")
+forwardBtn.AnchorPoint = Vector2.new(1, 0)
+local backwardBtn = createButton("Backward", UDim2.new(1, -80, 0, startY + spacing), "↓")
+backwardBtn.AnchorPoint = Vector2.new(1, 0)
+local leftBtn = createButton("Left", UDim2.new(1, -150, 0, startY + spacing/2), "←")
+leftBtn.AnchorPoint = Vector2.new(1, 0)
+local rightBtn = createButton("Right", UDim2.new(1, -10, 0, startY + spacing/2), "→")
+rightBtn.AnchorPoint = Vector2.new(1, 0)
+
+-- Funksiya teleport
+local function movePlayer(direction)
+    local stud = tonumber(textBox.Text)
+    if not stud then
+        stud = 10 -- default
+    end
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local hrp = character.HumanoidRootPart
+        if direction == "Forward" then
+            hrp.CFrame = hrp.CFrame + hrp.CFrame.LookVector * stud
+        elseif direction == "Backward" then
+            hrp.CFrame = hrp.CFrame - hrp.CFrame.LookVector * stud
+        elseif direction == "Left" then
+            hrp.CFrame = hrp.CFrame - hrp.CFrame.RightVector * stud
+        elseif direction == "Right" then
+            hrp.CFrame = hrp.CFrame + hrp.CFrame.RightVector * stud
+        end
+    end
+end
+
+-- Button click connections
+forwardBtn.MouseButton1Click:Connect(function() movePlayer("Forward") end)
+backwardBtn.MouseButton1Click:Connect(function() movePlayer("Backward") end)
+leftBtn.MouseButton1Click:Connect(function() movePlayer("Left") end)
+rightBtn.MouseButton1Click:Connect(function() movePlayer("Right") end)
