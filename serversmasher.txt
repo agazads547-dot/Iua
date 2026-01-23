@@ -1,0 +1,225 @@
+--// GUI Setup
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local Toggle = Instance.new("TextButton")
+local DestroyButton = Instance.new("TextButton")
+
+ScreenGui.Parent = game.CoreGui
+Frame.Parent = ScreenGui
+Toggle.Parent = Frame
+DestroyButton.Parent = Frame
+
+Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Frame.Position = UDim2.new(0.85,0,0.05,0)
+Frame.Size = UDim2.new(0,130,0,70)
+Frame.Active = true
+Frame.Draggable = true
+Frame.BorderSizePixel = 0
+Frame.BackgroundTransparency = 0.2
+
+Toggle.BackgroundColor3 = Color3.fromRGB(0,255,100)
+Toggle.Size = UDim2.new(1,-10,0,30)
+Toggle.Position = UDim2.new(0,5,0,5)
+Toggle.Text = "ON"
+Toggle.TextScaled = true
+Toggle.TextColor3 = Color3.fromRGB(0,0,0)
+Toggle.Font = Enum.Font.SourceSansBold
+
+DestroyButton.BackgroundColor3 = Color3.fromRGB(255,60,60)
+DestroyButton.Size = UDim2.new(1,-10,0,25)
+DestroyButton.Position = UDim2.new(0,5,0,40)
+DestroyButton.Text = "Destroy"
+DestroyButton.TextScaled = true
+DestroyButton.TextColor3 = Color3.fromRGB(0,0,0)
+DestroyButton.Font = Enum.Font.SourceSansBold
+
+--// Variables
+local toggleState = false
+local loopConnection, flingFixConnection, swordLoop, rangeLoop, deathConn, charConn
+local teleportPos = Vector3.new(0.44,248.2,3.68)
+local player = game:GetService("Players").LocalPlayer
+local rs = game:GetService("RunService")
+local localRange = 99999999999999
+
+--// Sword Equip Function
+local function equipSwordTwice(char)
+	local backpack = player:FindFirstChild("Backpack")
+	if not backpack then return end
+	for _ = 1, 2 do
+		for _, tool in ipairs(backpack:GetChildren()) do
+			if tool:IsA("Tool") then
+				tool.Parent = char
+				task.wait(0.05)
+			end
+		end
+	end
+end
+
+--// Sword Handler
+local function handleSword()
+	if swordLoop then swordLoop:Disconnect() end
+	swordLoop = rs.RenderStepped:Connect(function()
+		if not toggleState then return end
+		local char = player.Character
+		if char then
+			local humanoid = char:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.Health <= 0 then return end
+			local tool = char:FindFirstChildOfClass("Tool")
+			if tool then
+				local handle = tool:FindFirstChildOfClass("Part") or tool:FindFirstChild("Handle")
+				if handle then
+					tool:Activate()
+				end
+			end
+		end
+	end)
+end
+
+--// Local Range Script
+local function rangeScript()
+	if rangeLoop then rangeLoop:Disconnect() end
+	rangeLoop = rs.RenderStepped:Connect(function()
+		if not toggleState then return end
+		local p = game.Players:GetPlayers()
+		for i = 2,#p do
+			local v = p[i].Character
+			if v and v:FindFirstChild("Humanoid") and v.Humanoid.Health>0 and v:FindFirstChild("HumanoidRootPart") and player:DistanceFromCharacter(v.HumanoidRootPart.Position)<=localRange then
+				local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+				if tool and (tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("Part")) then
+					tool:Activate()
+					for _, part in ipairs(v:GetChildren()) do
+						if part:IsA("BasePart") then
+							firetouchinterest(tool.Handle or tool:FindFirstChildOfClass("Part"), part, 0)
+							firetouchinterest(tool.Handle or tool:FindFirstChildOfClass("Part"), part, 1)
+						end
+					end
+				end
+			end
+		end
+	end)
+end
+
+--// Start Scripts
+local function startScripts()
+	toggleState = true
+	Toggle.Text = "OFF"
+	Toggle.BackgroundColor3 = Color3.fromRGB(255,100,100)
+
+	-- TP Loop
+	loopConnection = rs.Heartbeat:Connect(function()
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local hrp = player.Character.HumanoidRootPart
+			if (hrp.Position-teleportPos).Magnitude>1 then
+				hrp.CFrame = CFrame.new(teleportPos)
+			end
+		end
+	end)
+
+	-- Xarici script
+	loadstring(game:HttpGet("https://pastebin.com/raw/gvZVNcWT"))()
+
+	-- Sword vÉ™ Range Scripts
+	handleSword()
+	rangeScript()
+
+	-- Respawn vÉ™ Ã¶lÃ¼m handling
+	if charConn then charConn:Disconnect() end
+	charConn = player.CharacterAdded:Connect(function(char)
+		if toggleState then
+			repeat task.wait() until char:FindFirstChild("HumanoidRootPart")
+			char:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(teleportPos)
+			task.wait(0.2)
+			equipSwordTwice(char)
+			handleSword()
+			rangeScript()
+		end
+
+		local hum = char:WaitForChild("Humanoid")
+		if deathConn then deathConn:Disconnect() end
+		deathConn = hum.Died:Connect(function()
+			local tool = char:FindFirstChildOfClass("Tool")
+			if tool then
+				tool.Parent = player:FindFirstChild("Backpack")
+			end
+		end)
+	end)
+
+	-- CanCollide fix + accessory silmÉ™
+	flingFixConnection = rs.Stepped:Connect(function()
+		for _, CoPlayer in pairs(game:GetService("Players"):GetChildren()) do
+			if CoPlayer~=player and CoPlayer.Character then
+				for _, Part in pairs(CoPlayer.Character:GetChildren()) do
+					if Part.Name=="HumanoidRootPart" then
+						Part.CanCollide=false
+					end
+				end
+			end
+		end
+		for _, Accessory in pairs(workspace:GetChildren()) do
+			if Accessory:IsA("Accessory") and Accessory:FindFirstChildWhichIsA("Part") then
+				Accessory:FindFirstChildWhichIsA("Part"):Destroy()
+			end
+		end
+	end)
+end
+
+--// Stop Scripts
+local function stopScripts()
+	toggleState=false
+	Toggle.Text="ON"
+	Toggle.BackgroundColor3=Color3.fromRGB(0,255,100)
+
+	if loopConnection then loopConnection:Disconnect() end
+	if flingFixConnection then flingFixConnection:Disconnect() end
+	if swordLoop then swordLoop:Disconnect() end
+	if rangeLoop then rangeLoop:Disconnect() end
+	if deathConn then deathConn:Disconnect() end
+	if charConn then charConn:Disconnect() end
+end
+
+--// Toggle & Destroy
+Toggle.MouseButton1Click:Connect(function()
+	if not toggleState then startScripts() else stopScripts() end
+end)
+DestroyButton.MouseButton1Click:Connect(function()
+	stopScripts()
+	ScreenGui:Destroy()
+end)
+
+--// Extra Reset GUI
+local ResetFrame = Instance.new("Frame")
+local ResetButton = Instance.new("TextButton")
+
+ResetFrame.Parent = ScreenGui
+ResetFrame.BackgroundColor3 = Color3.fromRGB(35,35,35)
+ResetFrame.Position = UDim2.new(0.85,0,0.3,0)
+ResetFrame.Size = UDim2.new(0,130,0,40)
+ResetFrame.BorderSizePixel = 0
+ResetFrame.BackgroundTransparency = 0.2
+ResetFrame.Active = true
+ResetFrame.Draggable = true
+
+ResetButton.Parent = ResetFrame
+ResetButton.BackgroundColor3 = Color3.fromRGB(255,200,0)
+ResetButton.Size = UDim2.new(1,-10,1,-10)
+ResetButton.Position = UDim2.new(0,5,0,5)
+ResetButton.Text = "Reset Character"
+ResetButton.TextScaled = true
+ResetButton.TextColor3 = Color3.fromRGB(0,0,0)
+ResetButton.Font = Enum.Font.SourceSansBold
+
+ResetButton.MouseButton1Click:Connect(function()
+	local char = player.Character
+	if char and char:FindFirstChildOfClass("Humanoid") then
+		char:FindFirstChildOfClass("Humanoid").Health = 0
+	end
+end)
+
+-- GUI tam silinsin deyə Destroy düyməsinə əlavə
+DestroyButton.MouseButton1Click:Connect(function()
+	stopScripts()
+	ScreenGui:Destroy()
+	if ResetFrame then
+		ResetFrame:Destroy()
+	end
+end)
