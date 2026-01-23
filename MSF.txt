@@ -1,0 +1,86 @@
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+--// GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 100, 0, 40)
+ToggleButton.Position = UDim2.new(1, -110, 0, 10)
+ToggleButton.Text = "OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ToggleButton.Parent = ScreenGui
+ToggleButton.Active = true
+ToggleButton.Draggable = true
+
+local enabled = false
+ToggleButton.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    ToggleButton.Text = enabled and "ON" or "OFF"
+    ToggleButton.BackgroundColor3 = enabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255,0,0)
+end)
+
+--// Sword equip/unequip
+local function equipSword()
+    for _, tool in ipairs(player.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool.Name:lower():find("sword") then
+            player.Character.Humanoid:EquipTool(tool)
+            return tool
+        end
+    end
+end
+
+local function unequipSword(tool)
+    if tool and tool.Parent == player.Character then
+        player.Character.Humanoid:UnequipTools()
+    end
+end
+
+--// Load skriptlər gecikmə ilə
+local function loadScriptsWithDelay()
+    wait(0.3)
+    pcall(function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/Severitylol/Universal-Sword-Reach/main/swordreach.lua'))()
+        loadstring(game:HttpGet("https://pastebin.com/raw/zqyDSUWX"))()
+    end)
+end
+
+--// Main loop
+local currentTool
+local function mainLoop()
+    while true do
+        if enabled then
+            if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+                player.CharacterAdded:Wait()
+                wait(0.3)
+            end
+            currentTool = equipSword()
+            loadScriptsWithDelay()
+        else
+            unequipSword(currentTool)
+        end
+        wait(0.1)
+    end
+end
+
+spawn(mainLoop)
+
+--// CharacterAdded event
+player.CharacterAdded:Connect(function(char)
+    wait(0.3)
+    if enabled then
+        currentTool = equipSword()
+        loadScriptsWithDelay()
+    end
+end)
+
+--// Unequip on death
+player.Character:WaitForChild("Humanoid").Died:Connect(function()
+    unequipSword(currentTool)
+end)
